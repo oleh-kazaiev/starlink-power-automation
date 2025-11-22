@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shelly Starlink Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        select, input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        select:focus, input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .mode-description {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px;
+            padding-left: 4px;
+        }
+
+        .current-status {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .current-status h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .status-badge.auto {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-badge.on {
+            background: #c8e6c9;
+            color: #388e3c;
+        }
+
+        .status-badge.off {
+            background: #ffcdd2;
+            color: #d32f2f;
+        }
+
+        .plug-state {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .input-with-toggle {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px 8px;
+            width: auto;
+        }
+
+        .toggle-password:hover {
+            color: #333;
+            transform: translateY(-50%);
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Shelly Starlink Control</h1>
+        <p class="subtitle">Manage Starlink plug operation mode</p>
+
+        <div class="current-status" id="currentStatus" style="display: none;">
+            <h3>Current Status</h3>
+            <div class="status-info">
+                <div>
+                    <span class="status-badge" id="currentModebadge">Loading...</span>
+                </div>
+                <div class="plug-state" id="plugState">
+                    Plug: <strong id="plugStateText">Unknown</strong>
+                </div>
+            </div>
+        </div>
+
+        <form id="controlForm">
+            <div class="form-group">
+                <label for="mode">Operation Mode</label>
+                <select id="mode" name="mode" required>
+                    <option value="">Loading modes...</option>
+                </select>
+                <div class="mode-description" id="modeDescription">
+                    Loading...
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="token">API Token</label>
+                <div class="input-with-toggle">
+                    <input type="password" id="token" name="token" placeholder="Enter your API token" required>
+                    <button type="button" class="toggle-password" id="togglePassword">Show</button>
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn">Apply Settings</button>
+        </form>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        const modeSelect = document.getElementById('mode');
+        const modeDescription = document.getElementById('modeDescription');
+        const form = document.getElementById('controlForm');
+        const statusDiv = document.getElementById('status');
+        const submitBtn = document.getElementById('submitBtn');
+        const tokenInput = document.getElementById('token');
+        const togglePasswordBtn = document.getElementById('togglePassword');
+
+        let modeDescriptions = {};
+
+        // Toggle password visibility
+        togglePasswordBtn.addEventListener('click', function() {
+            if (tokenInput.type === 'password') {
+                tokenInput.type = 'text';
+                togglePasswordBtn.textContent = 'Hide';
+            } else {
+                tokenInput.type = 'password';
+                togglePasswordBtn.textContent = 'Show';
+            }
+        });
+
+        // Update current status display
+        async function updateCurrentStatus() {
+            try {
+                const response = await fetch('/status');
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const currentStatusDiv = document.getElementById('currentStatus');
+                    const modeBadge = document.getElementById('currentModebadge');
+                    const plugStateText = document.getElementById('plugStateText');
+
+                    // Show status section
+                    currentStatusDiv.style.display = 'block';
+
+                    // Update mode badge
+                    const modeLabels = {
+                        'auto': 'Auto Mode',
+                        'on': 'Always ON',
+                        'off': 'Always OFF'
+                    };
+
+                    modeBadge.textContent = modeLabels[data.mode] || data.mode;
+                    modeBadge.className = 'status-badge ' + data.mode;
+
+                    // Update plug state
+                    plugStateText.textContent = data.plug_on ? 'ON' : 'OFF';
+                    plugStateText.style.color = data.plug_on ? '#388e3c' : '#d32f2f';
+                }
+            } catch (error) {
+                console.error('Failed to load status:', error);
+            }
+        }
+
+        // Load available modes from API
+        async function loadModes() {
+            try {
+                const response = await fetch('/modes');
+                const data = await response.json();
+
+                // Clear loading option
+                modeSelect.innerHTML = '';
+
+                // Add all modes from API
+                data.modes.forEach(mode => {
+                    const option = document.createElement('option');
+                    option.value = mode.value;
+                    option.textContent = mode.label;
+                    modeSelect.appendChild(option);
+
+                    // Store description
+                    modeDescriptions[mode.value] = mode.description;
+                });
+
+                // Set initial description
+                if (modeSelect.value) {
+                    modeDescription.textContent = modeDescriptions[modeSelect.value];
+                }
+            } catch (error) {
+                modeSelect.innerHTML = '<option value="">Failed to load modes</option>';
+                modeDescription.textContent = 'Error loading modes: ' + error.message;
+            }
+        }
+
+        // Load modes on page load
+        loadModes();
+
+        // Load initial status immediately
+        updateCurrentStatus();
+
+        // Auto-refresh status every 10 seconds
+        setInterval(() => {
+            updateCurrentStatus();
+        }, 10000);
+
+        // Update description when mode changes
+        modeSelect.addEventListener('change', function() {
+            modeDescription.textContent = modeDescriptions[this.value] || '';
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const mode = modeSelect.value;
+            const token = tokenInput.value;
+
+            // Disable button during request
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Applying...';
+            statusDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`/control?mode=${mode}&token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = data.message;
+
+                    // Update current status display
+                    setTimeout(() => updateCurrentStatus(), 1000);
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = data.detail || 'An error occurred';
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = 'Failed to connect to the API: ' + error.message;
+            }
+
+            statusDiv.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Apply Settings';
+        });
+    </script>
+</body>
+</html>
