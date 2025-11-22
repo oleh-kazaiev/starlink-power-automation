@@ -1,0 +1,17 @@
+# Environment and state
+.env
+state.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store

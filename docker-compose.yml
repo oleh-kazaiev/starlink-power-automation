@@ -1,0 +1,15 @@
+services:
+  wan1-monitor:
+    build: .
+    container_name: wan1-monitor
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./state.json:/app/state.json
+    env_file:
+      - .env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
