@@ -64,7 +64,12 @@ def check_wan1_status():
                 port_stats = result.get('portStats', [])
                 for port in port_stats:
                     if port.get('type') == 0 and port.get('port') == 1:
-                        return port.get('internetState') == 1
+                        internet_state = port.get('internetState')
+                        online_detection = port.get('onlineDetection')
+                        status = port.get('status')
+                        ip = port.get('ip')
+                        logger.info(f"WAN1 Stats - InternetState: {internet_state}, OnlineDetection: {online_detection}, Status: {status}, IP: {ip}")
+                        return port.get('onlineDetection') == 1
 
         return False
     except Exception as e:
